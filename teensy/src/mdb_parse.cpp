@@ -5,6 +5,11 @@
 #include <mdb_defs.h>
 #include <mdb_parse.h>
 
+static Print* l;
+#define PARSE_LOG "[mdb_parse] "
+#define LOG(str) (l->println(PARSE_LOG str))
+#define LOGF(str,...) (l->printf(PARSE_LOG str, __VA_ARGS__))
+
 static uint8_t parse_state = MDB_PARSE_IDLE;
 
 static uint8_t curr_cmd = 0;
@@ -28,9 +33,6 @@ static uint8_t recv_csum = 0;
 static uint8_t tx_buffer[MDB_MSG_MAXLEN];
 static transmit_callback tx_callback;
 
-#define PARSE_LOG "[mdb_parse] "
-static Print* l;
-
 static const char* state_labels[] =
 {
 "IDLE       ",
@@ -41,7 +43,8 @@ static const char* state_labels[] =
 
 static void set_parse_state(uint8_t new_state)
 {
-    l->printf("State transition: %s to %s\n", state_labels[parse_state], state_labels[new_state]);
+    if(parse_state == new_state) return;
+    LOGF("\tState transition: %s to %s\n", state_labels[parse_state], state_labels[new_state]);
     parse_state = new_state;
 }
 
@@ -65,8 +68,6 @@ void mdb_parser_init(transmit_callback tx, Print* log_target)
 
 void mdb_parser_clear()
 {
-    l->printf(PARSE_LOG "Resetting parser\n");
-
     curr_cmd = MDB_NOCMD;
     curr_subcmd = MDB_NOSUBCMD;
 
@@ -95,14 +96,14 @@ void mdb_new_command(uint16_t incoming)
             {
                 set_parse_state(MDB_PARSE_RECV_DATA);
                 
-                l->printf(PARSE_LOG "Recognised command %02X. Data length: %d\n", cmd, def->length);
+                LOGF("Recognised command %02X. Data length: %d\n", cmd, def->length);
                 curr_cmd = cmd;
 
-                mdb_receive_byte(incoming & 0xFF);
+                //mdb_receive_byte(cmd);
             }
             else
             {
-                l->printf(PARSE_LOG "Unrecognised command %02X\n", cmd);
+                LOGF("Unrecognised command %02X\n", cmd);
                 mdb_parser_clear();
             }
         }
@@ -114,27 +115,25 @@ void mdb_receive_byte(uint8_t data)
     rx_buffer[rx_buffer_idx++] = data;
     recv_csum += data;
 
+    // LOGF("Appending buffer: %02X (length %d)\n", data, rx_buffer_idx);
+
     cmd_def *def = &CMD(curr_cmd, curr_subcmd);
     if (rx_buffer_idx == 2 && def->has_subcommands)
     {
         curr_subcmd = data;
         def = &CMD(curr_cmd, curr_subcmd);
-        l->printf(PARSE_LOG "Subcommand: %02X. Expecting data length %d\n", def->subcmd, def->length);
+        LOGF("Subcommand %02X:%02X. Expecting data length %d\n", def->cmd, def->subcmd, def->length);
     }
 
     if (rx_buffer_idx == def->length)
     {
-        l->printf(PARSE_LOG "Expecto Checksum!\n");
         set_parse_state(MDB_PARSE_EXPECT_CSUM);
     }
-    // else
-    // {
-    //     mdb_parser_clear();
-    // }
 }
 
 bool mdb_validate_csum(uint8_t data)
 {
+    LOGF("Validating checksum: received %02X, expecting %02X\n", data, recv_csum);
     bool checksum_ok = false;
     if (recv_csum == data)
     {
@@ -143,6 +142,7 @@ bool mdb_validate_csum(uint8_t data)
     }
     else
     {
+        LOG("Failed");
         mdb_parser_clear();
     }
 
@@ -164,9 +164,9 @@ bool mdb_execute_handler()
 {
     uint8_t last_byte = 0;
 
-    if (curr_cmd < MDB_COUNT_CMD && curr_subcmd < MDB_COUNT_SUBCMD)
+    if (!(curr_cmd < MDB_COUNT_CMD && curr_subcmd < MDB_COUNT_SUBCMD))
     {
-        l->printf(PARSE_LOG "Invalid command: %02X:%02X", curr_cmd, curr_subcmd);
+        LOGF("Invalid command: %02X:%02X\n", curr_cmd, curr_subcmd);
         return false;
     }
 
@@ -174,17 +174,17 @@ bool mdb_execute_handler()
 
     if(def->cmd != curr_cmd || def->subcmd != curr_subcmd)
     {
-        l->printf(PARSE_LOG "Command def %02X:%02X doesn't match current command %02X:%02X", def->cmd, def->subcmd, curr_cmd, curr_subcmd);
+        LOGF("Command def %02X:%02X doesn't match current command %02X:%02X\n", def->cmd, def->subcmd, curr_cmd, curr_subcmd);
         return false;
     }
 
     if(!def->handler)
     {
-        l->printf(PARSE_LOG "Command def %02X:%02X has no handler.", curr_cmd, curr_subcmd);
+        LOGF("Command def %02X:%02X has no handler.\n", curr_cmd, curr_subcmd);
         return false;
     }
 
-    l->printf(PARSE_LOG "Executing handler for %02X:%02X", def->cmd, def->subcmd);
+    LOGF("Executing handler for %02X:%02X\n", def->cmd, def->subcmd);
     uint8_t len = def->handler(rx_buffer, tx_buffer);
 
     if (len > 0)
@@ -196,12 +196,16 @@ bool mdb_execute_handler()
         last_byte = tx_buffer[0] != MDB_NCK ? MDB_ACK : MDB_NCK;
     }
 
+    l->print(">>>>>>>>     ");
     for (int i = 0; i < len; ++i)
     {
+        l->printf(" %02X", tx_buffer[i]);
         tx_callback(tx_buffer[i]);
     }
 
+    l->printf(" %04X", MDB_MODE_BIT | last_byte);
     tx_callback(MDB_MODE_BIT | last_byte);
+    l->println("");
 
     return true;
 }
@@ -233,10 +237,10 @@ uint16_t* mdb_parse(uint16_t incoming)
             mdb_parser_clear();
         }
     }
-    else if (parse_state == MDB_PARSE_WAIT_ACK)
-    {
-        /* code */
-    }
+    // else if (parse_state == MDB_PARSE_WAIT_ACK)
+    // {
+    //     /* code */
+    // }
     
 
     return nullptr;
@@ -244,7 +248,7 @@ uint16_t* mdb_parse(uint16_t incoming)
 
 void mdb_register_handler(uint8_t cmd, uint8_t subcmd, uint8_t length, mdb_command_handler handler)
 {
-    l->printf(PARSE_LOG "New command handler: %X:%X, length %d\n", cmd, subcmd, length);
+    LOGF("New command handler: %X:%X, length %d\n", cmd, subcmd, length);
 
     cmd_def *def = &CMD(cmd, MDB_NOSUBCMD);
     if(subcmd != MDB_NOSUBCMD)

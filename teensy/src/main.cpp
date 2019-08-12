@@ -79,7 +79,7 @@ void loop()
         incoming = peripheral->read();
         digitalWrite(led_pin, pin_state);
         pin_state = (pin_state == HIGH) ? LOW : HIGH;
-        //dump_incoming(incoming);
+        // dump_incoming(incoming);
 
         mdb_parse(incoming);
     }
