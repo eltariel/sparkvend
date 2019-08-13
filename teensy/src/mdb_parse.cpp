@@ -143,6 +143,15 @@ bool mdb_validate_csum(uint8_t data)
     else
     {
         LOG("Failed");
+
+        l->print("<<<<<<<<     ");
+        for (int i = 0; i < rx_buffer_idx; ++i)
+        {
+            l->printf(" %02X", rx_buffer[i]);
+            tx_callback(tx_buffer[i]);
+        }
+        l->println("");
+
         mdb_parser_clear();
     }
 

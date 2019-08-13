@@ -15,6 +15,7 @@
 #define MDB_CMD_VEND                    0x03
 #define MDB_CMD_READER                  0x04
 #define MDB_CMD_REVALUE                 0x05
+#define MDB_CMD_EXT                     0x07
 
 #define MDB_CMD_SETUP_CONFIG            0x00
 #define MDB_CMD_SETUP_PRICES            0x01
@@ -31,6 +32,8 @@
 #define MDB_CMD_READER_ENABLE           0x01
 #define MDB_CMD_READER_CANCEL           0x02
 #define MDB_CMD_READER_DATA_ENTRY_RESP  0x03
+
+#define MDB_CMD_EXT_REQUEST_ID          0x00
 
 /**
  * Cashless device responses

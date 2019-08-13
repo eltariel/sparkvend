@@ -2,7 +2,7 @@
 
 #define MDB_MODE_BIT            0x0100
 #define MDB_ADDRESS_MASK        0x00F8
-#define MDB_COMMAND_MASK        0x0003
+#define MDB_COMMAND_MASK        0x0007
 
 #define MDB_ACK                 0x00
 #define MDB_RETRANSMIT          0xAA

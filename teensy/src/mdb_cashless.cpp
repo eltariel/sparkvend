@@ -211,10 +211,49 @@ uint8_t mdb_cashless_vend_request(uint8_t* rx, uint8_t* tx)
 
 uint8_t mdb_cashless_vend_success(uint8_t* rx, uint8_t* tx)
 {
-	LOG("Vend success. TODO: parse message.");
+    uint16_t item_number = 0;
+    memcpy(&item_number, tx + 2, 2);
+	LOGF("Vend success: item number %04X", item_number);
 	
 	set_state(MDB_CASHLESS_STATE_IDLE);
 	return mdb_cashless_ackonly(tx);
+}
+
+uint8_t mdb_cashless_session_complete(uint8_t* rx, uint8_t* tx)
+{
+    LOG("End of vend session.");
+    set_state(MDB_CASHLESS_STATE_ENABLED);
+
+    tx[0] = MDB_RESPONSE_ENDSESSION;
+    return 1;
+}
+
+uint8_t mdb_cashless_request_id(uint8_t* rx, uint8_t* tx)
+{
+    char manufacturer[] = "WTF";
+    char serial[] = "10 digits?";
+    char model[] =  "SparkVend!!1";
+    uint16_t version = 0x0001;
+
+    tx[0] = MDB_RESPONSE_PERIPHERALID;
+    memcpy(tx +  1, manufacturer,  3);
+    memcpy(tx +  4, serial      , 10);
+    memcpy(tx + 14, model       , 12);
+    memcpy(tx + 28, &version    ,  2);
+
+    memcpy(manufacturer, rx +  2,  3);
+    memcpy(serial      , rx +  5, 10);
+    memcpy(model       , rx + 15, 12);
+    memcpy(&version    , rx + 29,  2);
+
+    LOGF("VMC Requesting ID: Manufacturer %s, serial %s, model %s, version %04X",
+            manufacturer,
+            serial,
+            model,
+            version);
+
+    
+    return 0;
 }
 
 void mdb_cashless_init(Print* log_target)
@@ -227,11 +266,12 @@ void mdb_cashless_init(Print* log_target)
     mdb_register_handler(MDB_CMD_SETUP, MDB_CMD_SETUP_PRICES, 6, &mdb_cashless_setup_prices);
     mdb_register_handler(MDB_CMD_VEND, MDB_CMD_VEND_REQUEST, 6, &mdb_cashless_vend_request);
     mdb_register_handler(MDB_CMD_VEND, MDB_CMD_VEND_CANCEL, 2, &test);
-    mdb_register_handler(MDB_CMD_VEND, MDB_CMD_VEND_SUCCESS, 4, &test);
+    mdb_register_handler(MDB_CMD_VEND, MDB_CMD_VEND_SUCCESS, 4, &mdb_cashless_vend_success);
     mdb_register_handler(MDB_CMD_VEND, MDB_CMD_VEND_FAILURE, 2, &test);
-    mdb_register_handler(MDB_CMD_VEND, MDB_CMD_VEND_SESSION_COMPLETE, 2, &test);
+    mdb_register_handler(MDB_CMD_VEND, MDB_CMD_VEND_SESSION_COMPLETE, 2, &mdb_cashless_session_complete);
     mdb_register_handler(MDB_CMD_VEND, MDB_CMD_VEND_CASH_SALE, 6, &test);
     mdb_register_handler(MDB_CMD_READER, MDB_CMD_READER_DISABLE, 2, &mdb_cashless_reader_disable);
     mdb_register_handler(MDB_CMD_READER, MDB_CMD_READER_ENABLE, 2, &mdb_cashless_reader_enable);
     mdb_register_handler(MDB_CMD_READER, MDB_CMD_READER_CANCEL, 2, &mdb_cashless_reader_cancel);
+    mdb_register_handler(MDB_CMD_EXT, MDB_CMD_EXT_REQUEST_ID, 31, &mdb_cashless_request_id);
 }
