@@ -3,7 +3,7 @@ This is a collection of bits that allows a device to communicate with a vending 
 implements the MDB/ICP standard.
 
 ## Ok, what?
-At [SparkCC][https://sparkcc.org] we have a bunch of vending machines. Of these, at least one
+At [SparkCC](https://sparkcc.org) we have a bunch of vending machines. Of these, at least one
 talks MDB/ICP, which is a protocol that connects a VMC (vending machine controller) to a number
 of devices, like coin mechs, bill acceptors, and cashless (credit card etc) devices. There's been
 a long-standing project idea to actually *use* this vending machine, probably for common components
@@ -33,7 +33,7 @@ set this up correctly, run this:
 
     git config include.path ../extra.gitconfig
 
-For more info about the filters, see [here][https://jnavila.github.io/plotkicadsch/].
+For more info about the filters, see [here](https://jnavila.github.io/plotkicadsch/).
 
 ## Repo Layout
 ### /
