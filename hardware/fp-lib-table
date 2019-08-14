@@ -1,0 +1,5 @@
+(fp_lib_table
+  (lib (name teensy)(type KiCad)(uri C:/Users/etomkins/Documents/Kicad/Libs/teensy.pretty)(options "")(descr ""))
+  (lib (name pi-hat)(type KiCad)(uri ${KIPRJMOD}/pi-hat.pretty)(options "")(descr ""))
+  (lib (name sparkvend)(type KiCad)(uri ${KIPRJMOD}/sparkvend.pretty)(options "")(descr ""))
+)

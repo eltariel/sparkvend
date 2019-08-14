@@ -1,0 +1,5 @@
+(sym_lib_table
+  (lib (name teensy)(type Legacy)(uri C:/Users/etomkins/Documents/Kicad/Libs/teensy_library/teensy.lib)(options "")(descr ""))
+  (lib (name sparkvend)(type Legacy)(uri ${KIPRJMOD}/sparkvend.lib)(options "")(descr ""))
+  (lib (name raspberrypi_hat)(type Legacy)(uri ${KIPRJMOD}/pi-hat.lib)(options "")(descr ""))
+)

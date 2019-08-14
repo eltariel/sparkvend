@@ -1,0 +1,35 @@
+EESchema-DOCLIB  Version 2.0
+#
+$CMP D_Schottky_wtf
+D Schottky diode, small symbol, filled shape
+K diode Schottky
+F ~
+$ENDCMP
+#
+$CMP GND_MDBPWR
+D Power symbol creates a global label with name "GND_MDBPWR" , MDB power ground
+K power-flag
+$ENDCMP
+#
+$CMP GND_MDBSIG
+D Power symbol creates a global label with name "GND_MDBSIG" , MDB signal ground
+K power-flag
+$ENDCMP
+#
+$CMP LM22678
+D SIMPLE SWITCHER® 4.5V to 42V, 5A Step-Down Voltage Regulator with Precision Enable
+K DC/DC Buck Converter 5A
+F http://www.ti.com/lit/gpn/lm22678
+$ENDCMP
+#
+$CMP VUSB
+D Power symbol creates a global label with name "VUSB"
+K power-flag
+$ENDCMP
+#
+$CMP V_MDBPWR
+D Power symbol creates a global label with name "V_MDBPWR"
+K power-flag
+$ENDCMP
+#
+#End Doc Library
