@@ -17,7 +17,10 @@
  * along with SparkVend.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#pragma once
+#ifndef __MDB_DEFS
+#define __MDB_DEFS
+
+#define TEXT(x) #x
 
 #define MDB_MODE_BIT            0x0100
 #define MDB_ADDRESS_MASK        0x00F8
@@ -47,8 +50,10 @@
 #define MDB_ADDR_AGEVERIFY      0x68
 #define MDB_ADDR_COINDISPENSER2 0x70
 
-#define MDB_NOCMD                       0x06
+#define MDB_NOCMD                       0x08
 #define MDB_COUNT_CMD                   (MDB_NOCMD+1)
 
 #define MDB_NOSUBCMD                    0x07
 #define MDB_COUNT_SUBCMD                (MDB_NOSUBCMD+1)
+
+#endif

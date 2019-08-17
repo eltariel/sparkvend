@@ -28,11 +28,18 @@ static Print* l;
 #define LOG(str) (l->println(CASHLESS_LOG str))
 #define LOGF(str,...) (l->printf(CASHLESS_LOG str, __VA_ARGS__))
 
+#ifdef VERBOSE_LOGGING
+    #define SPAM(str) (l->println(PARSE_LOG str))
+    #define SPAMF(str,...) (l->printf(PARSE_LOG str, __VA_ARGS__))
+#else
+    #define SPAM(str)
+    #define SPAMF(str,...)
+#endif
+
 static uint8_t cashless_state = MDB_CASHLESS_STATE_INACTIVE;
 static bool has_config = false;
 static bool has_prices = false;
 
-// static uint8_t vmc_config[4];
 static struct mdb_cashless_config_cmd vmc_config;
 static struct mdb_cashless_config_response my_config = {
     0x01,   // Feature level 1
@@ -45,18 +52,19 @@ static struct mdb_cashless_config_response my_config = {
 
 static const char* state_labels[] =
 {
-    "INACTIVE    ",
-    "DISABLED    ",
-    "ENABLED     ",
-    "IDLE        ",
-    "VEND        ",
-    "REVALUE     ",
-    "NEGVEND     ",
+    "INACTIVE",
+    "DISABLED",
+    "ENABLED",
+    "IDLE",
+    "VEND",
+    "REVALUE",
+    "NEGVEND",
 };
 
 static uint8_t set_state(uint8_t new_state)
 {
     if(new_state == cashless_state) return cashless_state;
+
     if((cashless_state == MDB_CASHLESS_STATE_INACTIVE && !(new_state == MDB_CASHLESS_STATE_DISABLED)) ||
        (cashless_state == MDB_CASHLESS_STATE_DISABLED && !(new_state == MDB_CASHLESS_STATE_INACTIVE ||
                                                            new_state == MDB_CASHLESS_STATE_ENABLED)) ||
@@ -117,14 +125,13 @@ uint8_t mdb_cashless_setup_config(uint8_t* rx, uint8_t* tx)
     set_state(has_prices ? MDB_CASHLESS_STATE_DISABLED : MDB_CASHLESS_STATE_INACTIVE);
     memcpy(&vmc_config, rx + 2, 4);
 
-    LOG("OH MY GAWD I HAVE CONFIG DATA\n");
     for(int i = 0; i < 6; ++i)
     {
         l->printf("0x%02X ", rx[i]);
     }
     l->println("");
 
-    LOGF("\tfeature level %d, %dRx%dC, display type %d\n",
+    LOGF("Config data received:\n\tfeature level %d, %dRx%dC, display type %d\n",
                             vmc_config.feature_level,
                             vmc_config.rows,
                             vmc_config.columns,
@@ -140,6 +147,11 @@ uint8_t mdb_cashless_setup_prices(uint8_t* rx, uint8_t* tx)
     has_prices = true;
 
     LOG("OH MY GAWD I HAVE PRICE DATA\n");
+    for(int i = 0; i < 6; ++i)
+    {
+        l->printf("0x%02X ", rx[i]);
+    }
+    LOG("");
 
     set_state(has_config ? MDB_CASHLESS_STATE_DISABLED : MDB_CASHLESS_STATE_INACTIVE);
     return mdb_cashless_ackonly(tx);
@@ -147,12 +159,19 @@ uint8_t mdb_cashless_setup_prices(uint8_t* rx, uint8_t* tx)
 
 uint8_t mdb_cashless_poll_handler(uint8_t* rx, uint8_t* tx)
 {
-    LOG("Poll!\n");
+    LOG("Poll!");
     uint8_t len = 0;
     if(cashless_state == MDB_CASHLESS_STATE_INACTIVE)
     {
         tx[0] = MDB_RESPONSE_JUSTRESET;
         len = 1;
+    }
+    else if(cashless_state == MDB_CASHLESS_STATE_ENABLED)
+    {
+        tx[0] = MDB_RESPONSE_NEWSESSION;
+        tx[1] = 0x00;
+        tx[2] = 0x19;
+        len = 3;
     }
     else
     {
@@ -209,11 +228,12 @@ uint8_t mdb_cashless_vend_request(uint8_t* rx, uint8_t* tx)
     uint8_t len = 0;
     if(cashless_state != MDB_CASHLESS_STATE_IDLE)
     {
+        LOG("VEND: out of sequence.");
         len = mdb_cashless_out_of_sequence(tx);
     }
-    
     else if(1)
     {
+        LOG("VEND OK!");
         tx[0] = MDB_RESPONSE_VENDOK;
         tx[1] = 0xFF;
         tx[2] = 0xFF;
@@ -221,6 +241,7 @@ uint8_t mdb_cashless_vend_request(uint8_t* rx, uint8_t* tx)
     }
     else
     {
+        LOG("VEND denied.");
         tx[0] = MDB_RESPONSE_VENDDENIED;
         len = 1;
     }
@@ -232,7 +253,7 @@ uint8_t mdb_cashless_vend_success(uint8_t* rx, uint8_t* tx)
 {
     uint16_t item_number = 0;
     memcpy(&item_number, tx + 2, 2);
-	LOGF("Vend success: item number %04X", item_number);
+	LOGF("Vend success: item number %04X\n", item_number);
 	
 	set_state(MDB_CASHLESS_STATE_IDLE);
 	return mdb_cashless_ackonly(tx);
@@ -270,7 +291,6 @@ uint8_t mdb_cashless_request_id(uint8_t* rx, uint8_t* tx)
             serial,
             model,
             version);
-
     
     return 0;
 }

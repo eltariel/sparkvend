@@ -29,6 +29,14 @@ static Print* l;
 #define LOG(str) (l->println(PARSE_LOG str))
 #define LOGF(str,...) (l->printf(PARSE_LOG str, __VA_ARGS__))
 
+#ifdef VERBOSE_LOGGING
+    #define SPAM(str) (l->println(PARSE_LOG str))
+    #define SPAMF(str,...) (l->printf(PARSE_LOG str, __VA_ARGS__))
+#else
+    #define SPAM(str)
+    #define SPAMF(str,...)
+#endif
+
 static uint8_t parse_state = MDB_PARSE_IDLE;
 
 static uint8_t curr_cmd = 0;
@@ -63,7 +71,7 @@ static const char* state_labels[] =
 static void set_parse_state(uint8_t new_state)
 {
     if(parse_state == new_state) return;
-    LOGF("\tState transition: %s to %s\n", state_labels[parse_state], state_labels[new_state]);
+    SPAMF("\tState transition: %s to %s\n", state_labels[parse_state], state_labels[new_state]);
     parse_state = new_state;
 }
 
@@ -115,10 +123,8 @@ void mdb_new_command(uint16_t incoming)
             {
                 set_parse_state(MDB_PARSE_RECV_DATA);
                 
-                LOGF("Recognised command %02X. Data length: %d\n", cmd, def->length);
+                SPAMF("Recognised command %02X. Data length: %d\n", cmd, def->length);
                 curr_cmd = cmd;
-
-                //mdb_receive_byte(cmd);
             }
             else
             {
@@ -134,14 +140,14 @@ void mdb_receive_byte(uint8_t data)
     rx_buffer[rx_buffer_idx++] = data;
     recv_csum += data;
 
-    // LOGF("Appending buffer: %02X (length %d)\n", data, rx_buffer_idx);
+    SPAMF("Appending buffer: %02X (length %d)\n", data, rx_buffer_idx);
 
     cmd_def *def = &CMD(curr_cmd, curr_subcmd);
     if (rx_buffer_idx == 2 && def->has_subcommands)
     {
         curr_subcmd = data;
         def = &CMD(curr_cmd, curr_subcmd);
-        LOGF("Subcommand %02X:%02X. Expecting data length %d\n", def->cmd, def->subcmd, def->length);
+        SPAMF("Subcommand %02X:%02X. Expecting data length %d\n", def->cmd, def->subcmd, def->length);
     }
 
     if (rx_buffer_idx == def->length)
@@ -152,7 +158,7 @@ void mdb_receive_byte(uint8_t data)
 
 bool mdb_validate_csum(uint8_t data)
 {
-    LOGF("Validating checksum: received %02X, expecting %02X\n", data, recv_csum);
+    SPAMF("Validating checksum: received %02X, expecting %02X\n", data, recv_csum);
     bool checksum_ok = false;
     if (recv_csum == data)
     {
@@ -161,7 +167,7 @@ bool mdb_validate_csum(uint8_t data)
     }
     else
     {
-        LOG("Failed");
+        LOGF("Invalid checksum: received %02X, expecting %02X\n", data, recv_csum);
 
         l->print("<<<<<<<<     ");
         for (int i = 0; i < rx_buffer_idx; ++i)
@@ -212,7 +218,7 @@ bool mdb_execute_handler()
         return false;
     }
 
-    LOGF("Executing handler for %02X:%02X\n", def->cmd, def->subcmd);
+    SPAMF("Executing handler for %02X:%02X\n", def->cmd, def->subcmd);
     uint8_t len = def->handler(rx_buffer, tx_buffer);
 
     if (len > 0)
