@@ -83,6 +83,7 @@
 
 void mdb_cashless_init(Print* log_target);
 
+#pragma pack(1)
 struct mdb_cashless_config_cmd
 {
     uint8_t feature_level;
@@ -100,5 +101,19 @@ struct mdb_cashless_config_response
     uint8_t max_response_time;
     uint8_t options;
 };
+#pragma pack()
+
+/**
+ * Provide funds to the cashless device.
+ * 
+ * funds: 0 - 0xFFFE = amount available. 0xFFFF = unknown amount.
+ */
+void mdb_cashless_funds_available(uint16_t funds);
+
+uint8_t mdb_cashless_get_current_state();
+uint8_t mdb_cashless_get_vend_count();
+uint16_t mdb_cashless_get_current_funds();
+uint16_t mdb_cashless_get_last_item();
+uint16_t mdb_cashless_get_last_price();
 
 #endif

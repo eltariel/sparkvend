@@ -19,15 +19,18 @@
 
 #include <Arduino.h>
 #include <HardwareSerial.h>
+#include <Wire.h>
 
 #include <mdb_defs.h>
 #include <mdb_parse.h>
 #include <mdb_cashless.h>
 
+#include <i2c_interface.h>
+
 const int led_pin = 13;
 
-HardwareSerial *peripheral = &Serial2;
-HardwareSerial *sniff = &Serial3;
+HardwareSerial *peripheral = &Serial3;
+HardwareSerial *sniff = &Serial1;
 usb_serial_class *host = &Serial;
 
 size_t tx(uint16_t data)
@@ -45,9 +48,11 @@ void setup()
     pinMode(led_pin, OUTPUT);
 
     host->begin(9600);
-    sniff->begin(9600, SERIAL_9N1_TXINV);
+    sniff->begin(9600, SERIAL_9N1);
     peripheral->begin(9600, SERIAL_9N1_TXINV);
 
+    i2c_setup();
+    
     mdb_parser_init(&tx, host);
     mdb_cashless_init(host);
 }
